@@ -1,0 +1,18 @@
+IsaacLab pwd:
+/home/junbo/.local/share/ov/pkg/IsaacLab
+
+
+clash
+https://45.137.181.216/link/2Xxhnj84RkCeQlPX?clash=1
+
+asset path
+/home/junbo/.local/share/ov/pkg/IsaacLab/source/extensions/omni.isaac.lab_assets
+
+train.py & play.py path
+/home/junbo/.local/share/ov/pkg/IsaacLab/source/standalone/workflows/rl_games
+
+env path
+/home/junbo/.local/share/ov/pkg/IsaacLab/source/extensions/omni.isaac.lab_tasks/omni/isaac/lab_tasks/direct
+
+checkpoint path
+loading checkpoint '/home/junbo/.local/share/ov/pkg/IsaacLab/logs/rl_games/franka_cabinet_direct/2024-12-21_19-32-30/nn/franka_cabinet_direct.pth'

@@ -36,21 +36,35 @@ def design_scene():
     cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
     cfg.func("/World/Light", cfg)
 
-    # 定义 TI5 机械臂配置（需要根据实际 USD 路径调整）
-    # TI5_ARM_CFG = {
-    #     "prim_path": "/World/Robot",
-    #     "usd_path": "/home/junbo/.local/share/ov/pkg/IsaacLab/source/extensions/omni.isaac.lab_tasks/omni/isaac/lab_tasks/direct/ti5_hand/arm2_assets/arm2.usd",
-    #     "translation": (0.0, 0.0, 0.0),
-    #     "orientation": (1.0, 0.0, 0.0, 0.0),
-    #     "init_state": {
-    #         "pos": (0.0, 0.0, 0.0),
-    #         "joint_pos": { },  # 可在此定义特定关节初始位置
-    #     }
+    # TI5_ARM_CFG = ArticulationCfg(
+    # prim_path="/World/Robot",
+    # spawn=sim_utils.UsdFileCfg(
+    #         usd_path=f"source/extensions/omni.isaac.lab_tasks/omni/isaac/lab_tasks/direct/ti5_hand/arm2_assets/arm2.usd", # revlative path to the bash/terminal
+    #         activate_contact_sensors=False,
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(
+    #             disable_gravity=False,
+    #             max_depenetration_velocity=5.0,
+    #         ),
+    #         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+    #             enabled_self_collisions=False, solver_position_iteration_count=12, solver_velocity_iteration_count=1
+    #         ),
+    #     ),
+    # actuators={
+    #     "default": ImplicitActuatorCfg(
+    #         joint_names_expr=[".*"],
+    #         effort_limit=150.0,    # 根据实际电机参数调整
+    #         velocity_limit=12.0,
+    #         stiffness=300.0,       # 适当提高刚度
+    #         damping=25.0           # 适当提高阻尼
+    #     )
     # }
+    # )
+
     TI5_ARM_CFG = ArticulationCfg(
+    # nedd to be modified
     prim_path="/World/Robot",
     spawn=sim_utils.UsdFileCfg(
-            usd_path=f"source/extensions/omni.isaac.lab_tasks/omni/isaac/lab_tasks/direct/ti5_hand/arm2_assets/arm2.usd", # revlative path to the bash/terminal
+            usd_path=f"source/extensions/omni.isaac.lab_tasks/omni/isaac/lab_tasks/direct/ti5_hand/arm2_assets/arm2.usd",   # revlative path to the bash/terminal
             activate_contact_sensors=False,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 disable_gravity=False,
@@ -60,16 +74,55 @@ def design_scene():
                 enabled_self_collisions=False, solver_position_iteration_count=12, solver_velocity_iteration_count=1
             ),
         ),
+    init_state=ArticulationCfg.InitialStateCfg(
+        joint_pos={
+            "A": 1.157,
+            "B": -1.066,
+            "C": -0.155,
+            "D": -2.239,
+            "E": -1.841,
+            "F": 1.003,
+            "L_index_proximal_joint": 0.0000,
+            "L_middle_proximal_joint": 0.0000,
+            "L_pinky_proximal_joint": 0.0001,
+            "L_ring_proximal_joint": 0.0001,
+            "L_thumb_proximal_yaw_joint": 0.0002,
+            "L_index_intermediate_joint": 0.0000,
+            "L_middle_intermediate_joint": -0.0000,
+            "L_pinky_intermediate_joint": -0.0000,
+            "L_ring_intermediate_joint": -0.0000,
+            "L_thumb_proximal_pitch_joint": 0.0001,
+            "L_thumb_intermediate_joint": 0.0023,
+            "L_thumb_distal_joint": 0.0000
+        },
+        pos=(1.0, 0.0, 0.0),
+        rot=(0.0, 0.0, 0.0, 1.0),
+    ),
     actuators={
-        "default": ImplicitActuatorCfg(
-            joint_names_expr=[".*"],
-            effort_limit=150.0,    # 根据实际电机参数调整
-            velocity_limit=12.0,
-            stiffness=300.0,       # 适当提高刚度
-            damping=25.0           # 适当提高阻尼
-        )
-    }
-)
+        "arm": ImplicitActuatorCfg(
+            joint_names_expr=["A", "B", "C", "D", "E", "F"],
+            effort_limit=150.0,
+            velocity_limit=2.5,
+            stiffness=80.0,
+            damping=4.0,
+        ),
+        "active_fingers": ImplicitActuatorCfg(
+            joint_names_expr=["L_index_proximal_joint", "L_middle_proximal_joint", "L_pinky_proximal_joint", "L_ring_proximal_joint", "L_thumb_proximal_yaw_joint", "L_thumb_proximal_pitch_joint"],
+            effort_limit=200.0,
+            velocity_limit=0.2,
+            stiffness=2e3,
+            damping=1e2,
+        ),
+        "passive_fingers": ImplicitActuatorCfg(
+            joint_names_expr=["L_index_intermediate_joint", "L_middle_intermediate_joint", "L_pinky_intermediate_joint", "L_ring_intermediate_joint", "L_thumb_intermediate_joint", "L_thumb_distal_joint"],
+            effort_limit=0.0,   # 禁止主动控制
+            stiffness=0.0,      # 取消刚度
+            damping=0.0         # 取消阻尼
+        ),
+    },
+    )
+
+
     # 创建机械臂实例
     ti5_arm = Articulation(cfg=TI5_ARM_CFG)
     return {"ti5_arm": ti5_arm}
@@ -99,9 +152,14 @@ def main():
     #     print(f"关节名称: {name:<20} 初始位置: {pos:.4f}")
     
     # 保持仿真运行
+    # while simulation_app.is_running():
+    #     sim.step()
+
+    sim_dt = sim.get_physics_dt()
+    sim_time = 0.0
+    count = 0
     while simulation_app.is_running():
         sim.step()
-
 
 if __name__ == "__main__":
     main()

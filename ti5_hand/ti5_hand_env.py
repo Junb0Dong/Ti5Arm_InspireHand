@@ -108,6 +108,7 @@ class Ti5HandEnvCfg(DirectRLEnvCfg):
                 effort_limit=0.0,   # 禁止主动控制
                 stiffness=0.0,      # 取消刚度
                 damping=0.0         # 取消阻尼
+            ),
         },
     )
 

@@ -7,7 +7,7 @@
 """首先启动 Isaac Sim 仿真器"""
 import argparse
 import torch
-from omni.isaac.lab.app import AppLauncher
+from isaaclab.app import AppLauncher
 
 # 添加 AppLauncher 命令行参数
 parser = argparse.ArgumentParser(description="获取 TI5 机械臂初始关节信息")
@@ -18,11 +18,10 @@ args_cli = parser.parse_args()
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
-import omni.isaac.lab.sim as sim_utils
-from omni.isaac.lab.assets import Articulation, ArticulationCfg
-from omni.isaac.lab.sim import SimulationContext
-from omni.isaac.lab.actuators.actuator_cfg import ImplicitActuatorCfg
-
+import isaaclab.sim as sim_utils 
+from isaaclab.assets import Articulation, ArticulationCfg
+from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
+from isaaclab_assets.robots.ti5_inspire import TI5_INSPIRE_CFG
 
 
 """以下是主要逻辑部分"""
@@ -35,43 +34,9 @@ def design_scene():
     # Lights
     cfg = sim_utils.DomeLightCfg(intensity=2000.0, color=(0.75, 0.75, 0.75))
     cfg.func("/World/Light", cfg)
-
-    # 定义 TI5 机械臂配置（需要根据实际 USD 路径调整）
-    # TI5_ARM_CFG = {
-    #     "prim_path": "/World/Robot",
-    #     "usd_path": "/home/junbo/.local/share/ov/pkg/IsaacLab/source/extensions/omni.isaac.lab_tasks/omni/isaac/lab_tasks/direct/ti5_hand/arm2_assets/arm2.usd",
-    #     "translation": (0.0, 0.0, 0.0),
-    #     "orientation": (1.0, 0.0, 0.0, 0.0),
-    #     "init_state": {
-    #         "pos": (0.0, 0.0, 0.0),
-    #         "joint_pos": { },  # 可在此定义特定关节初始位置
-    #     }
-    # }
-    TI5_ARM_CFG = ArticulationCfg(
-    prim_path="/World/Robot",
-    spawn=sim_utils.UsdFileCfg(
-            usd_path=f"source/extensions/omni.isaac.lab_tasks/omni/isaac/lab_tasks/direct/ti5_hand/arm2_assets/arm2.usd",
-            activate_contact_sensors=False,
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                disable_gravity=False,
-                max_depenetration_velocity=5.0,
-            ),
-            articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-                enabled_self_collisions=False, solver_position_iteration_count=12, solver_velocity_iteration_count=1
-            ),
-        ),
-    actuators={
-        "default": ImplicitActuatorCfg(
-            joint_names_expr=[".*"],
-            effort_limit=150.0,    # 根据实际电机参数调整
-            velocity_limit=12.0,
-            stiffness=300.0,       # 适当提高刚度
-            damping=25.0           # 适当提高阻尼
-        )
-    }
-)
     # 创建机械臂实例
-    ti5_arm = Articulation(cfg=TI5_ARM_CFG)
+    ti5_arm = Articulation(TI5_INSPIRE_CFG.replace(prim_path="/World/Robot"))
+    
     return {"ti5_arm": ti5_arm}
 
 def main():
@@ -93,10 +58,10 @@ def main():
     print(robot.data.joint_names)
     print("==============================")
     print(robot.data.joint_pos)
-    # for name, pos_tensor in zip(robot.data.joint_names, robot.data.joint_pos):
-    #     # 将张量转换为标量数值
-    #     pos = pos_tensor.item() if pos_tensor.numel() == 1 else pos_tensor.mean().item()
-    #     print(f"关节名称: {name:<20} 初始位置: {pos:.4f}")
+    for name, pos_tensor in zip(robot.data.joint_names, robot.data.joint_pos):
+        # 将张量转换为标量数值
+        pos = pos_tensor.item() if pos_tensor.numel() == 1 else pos_tensor.mean().item()
+        print(f"关节名称: {name:<20} 初始位置: {pos:.4f}")
     
     # 保持仿真运行
     while simulation_app.is_running():
